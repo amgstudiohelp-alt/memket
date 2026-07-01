@@ -12,7 +12,6 @@ workflows:
         - push
       branch_patterns:
         - pattern: 'main'
-          target_denied: false
     environment:
       flutter: stable
       xcode: latest
