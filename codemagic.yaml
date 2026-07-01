@@ -2,11 +2,11 @@ workflows:
   ios-app-store:
     name: iOS App Store Release
     max_build_duration: 60
-    instance_type: mac_mini_co2
+    instance_type: mac_mini_m1
     integrations:
       # Codemagic paneli 'Integrations' kısmında Apple Developer hesabınızı hangi isimle eklediyseniz onu yazmalısınız.
       # Varsayılan olarak 'Apple Developer Account' yazılmıştır.
-      app_store_connect: Apple Developer Account
+      app_store_connect: Codemagic
     triggering:
       events:
         - push
@@ -21,7 +21,7 @@ workflows:
         # App Store Connect'te uygulamanızı oluşturduktan sonra "App Information" (Uygulama Bilgisi) sayfasında yer alan
         # 10 haneli "Apple ID" (Uygulama Kimliği) numarasını buraya yazın.
         # Örnek: APP_STORE_APPLE_ID: 6470000000
-        APP_STORE_APPLE_ID: 1234567890
+        APP_STORE_APPLE_ID: 6786412653
     scripts:
       - name: Set up CocoaPods and Dependencies
         script: |
