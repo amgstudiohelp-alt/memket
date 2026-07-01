@@ -20,7 +20,7 @@ workflows:
         # App Store Connect'te uygulamanızı oluşturduktan sonra "App Information" (Uygulama Bilgisi) sayfasında yer alan
         # 10 haneli "Apple ID" (Uygulama Kimliği) numarasını buraya yazın.
         # Örnek: APP_STORE_APPLE_ID: 6470000000
-        APP_STORE_APPLE_ID: 6786412653
+        APP_STORE_APPLE_ID: 6786417328
     scripts:
       - name: Set up CocoaPods and Dependencies
         script: |
