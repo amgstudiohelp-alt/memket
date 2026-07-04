@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:ardahan_kulubu/services/connection_service.dart';
+import 'package:ardahan_kulubu/services/web_session_persistence.dart';
 import 'package:ardahan_kulubu/screens/webview_screen.dart';
 import 'package:ardahan_kulubu/screens/offline_screen.dart';
 
@@ -17,6 +18,7 @@ Future<void> main() async {
     if (event.notification.additionalData != null) {}
   });
 
+  await WebSessionPersistence.restore();
   await _requestNotificationPermission();
 
   runApp(const MyApp());
@@ -87,7 +89,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Kars Ardahan (Memket)',
+      title: 'Memket',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:ardahan_kulubu/services/web_session_persistence.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
@@ -14,7 +17,10 @@ class WebViewScreen extends StatefulWidget {
 }
 
 class _WebViewScreenState extends State<WebViewScreen> {
+  static const Duration _cookieSaveDebounce = Duration(seconds: 1);
   late final WebViewController _controller;
+  late final _WebViewLifecycleObserver _lifecycleObserver;
+  bool _saveScheduled = false;
 
   Future<List<String>> _androidFilePicker(FileSelectorParams params) async {
     if (params.mode == FileSelectorMode.save) {
@@ -91,6 +97,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void initState() {
     super.initState();
+    _lifecycleObserver = _WebViewLifecycleObserver(_saveSession);
+    WidgetsBinding.instance.addObserver(_lifecycleObserver);
 
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -189,6 +197,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 document.documentElement.style.touchAction = 'pan-x pan-y';
               })();
             ''');
+            _scheduleSessionSave();
           },
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
@@ -213,9 +222,41 @@ class _WebViewScreenState extends State<WebViewScreen> {
           .setAllowsBackForwardNavigationGestures(true);
     }
 
-    controller.loadRequest(Uri.parse(widget.url));
-
     _controller = controller;
+    unawaited(_loadInitialRequest());
+  }
+
+  Future<void> _loadInitialRequest() async {
+    await WebSessionPersistence.restore();
+
+    if (!mounted) {
+      return;
+    }
+
+    await _controller.loadRequest(Uri.parse(widget.url));
+  }
+
+  void _scheduleSessionSave() {
+    if (_saveScheduled) {
+      return;
+    }
+
+    _saveScheduled = true;
+    Future<void>.delayed(_cookieSaveDebounce, () async {
+      _saveScheduled = false;
+      await _saveSession();
+    });
+  }
+
+  Future<void> _saveSession() {
+    return WebSessionPersistence.save();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(_lifecycleObserver);
+    unawaited(WebSessionPersistence.save());
+    super.dispose();
   }
 
   Future<void> _handlePopInvoked(bool didPop, Object? result) async {
@@ -240,5 +281,20 @@ class _WebViewScreenState extends State<WebViewScreen> {
         body: SafeArea(child: WebViewWidget(controller: _controller)),
       ),
     );
+  }
+}
+
+class _WebViewLifecycleObserver extends WidgetsBindingObserver {
+  _WebViewLifecycleObserver(this.onShouldSave);
+
+  final Future<void> Function() onShouldSave;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      unawaited(onShouldSave());
+    }
   }
 }
