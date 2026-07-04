@@ -127,7 +127,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         NavigationDelegate(
           onProgress: (int progress) {},
           onPageStarted: (String url) {
-            _markLoggedInRoute(url);
+            _syncAuthenticationRoute(url);
             controller.runJavaScript('''
               (function() {
                 var meta = document.querySelector('meta[name="viewport"]');
@@ -195,7 +195,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ''');
           },
           onPageFinished: (String url) {
-            _markLoggedInRoute(url);
+            _syncAuthenticationRoute(url);
             controller.runJavaScript('''
               (function() {
                 var meta = document.querySelector('meta[name="viewport"]');
@@ -210,7 +210,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
-            _markLoggedInRoute(request.url);
+            _syncAuthenticationRoute(request.url);
             return NavigationDecision.navigate;
           },
         ),
@@ -249,8 +249,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
     await _controller.loadRequest(Uri.parse(initialUrl));
   }
 
-  void _markLoggedInRoute(String url) {
-    unawaited(StartUrlService.markLoggedInIfNeeded(url));
+  void _syncAuthenticationRoute(String url) {
+    unawaited(StartUrlService.syncAuthenticationStateForUrl(url));
   }
 
   void _scheduleSessionSave() {

@@ -12,13 +12,31 @@ class StartUrlService {
     return hasLoggedIn ? loggedInUrl : fallbackUrl;
   }
 
-  static Future<void> markLoggedInIfNeeded(String url) async {
+  static Future<void> syncAuthenticationStateForUrl(String url) async {
+    if (isLoginUrl(url)) {
+      final SharedPreferences preferences =
+          await SharedPreferences.getInstance();
+      await preferences.setBool(_hasLoggedInKey, false);
+      return;
+    }
+
     if (!isLoggedInUrl(url)) {
       return;
     }
 
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_hasLoggedInKey, true);
+  }
+
+  static bool isLoginUrl(String url) {
+    final Uri? uri = Uri.tryParse(url);
+    if (uri == null) {
+      return false;
+    }
+
+    final String host = uri.host.toLowerCase();
+    return (host == 'uygaria.com' || host.endsWith('.uygaria.com')) &&
+        uri.path == '/memket.php';
   }
 
   static bool isLoggedInUrl(String url) {
