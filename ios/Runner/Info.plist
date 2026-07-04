@@ -45,6 +45,8 @@
 	<string>Video içerik yükleme işlemleri için mikrofon erişimi kullanılabilir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil ve içerik yükleme işlemleri için fotoğraf erişimi kullanılabilir.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Konum erişimi, yalnızca konuma bağlı özellikler kullanıldığında gereklidir.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
