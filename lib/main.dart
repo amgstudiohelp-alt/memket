@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:in_app_update/in_app_update.dart';
 import 'package:ardahan_kulubu/services/connection_service.dart';
+import 'package:ardahan_kulubu/services/start_url_service.dart';
 import 'package:ardahan_kulubu/services/web_session_persistence.dart';
 import 'package:ardahan_kulubu/screens/webview_screen.dart';
 import 'package:ardahan_kulubu/screens/offline_screen.dart';
@@ -44,7 +45,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool _isConnected = true;
-  final String _targetUrl = "http://uygaria.com/memket.php";
+  final String _targetUrl = StartUrlService.loginUrl;
 
   @override
   void initState() {

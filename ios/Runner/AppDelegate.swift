@@ -112,8 +112,11 @@ import WebKit
   private func shouldPersist(cookie: HTTPCookie) -> Bool {
     let domain = cookie.domain.lowercased()
     let normalizedDomain = domain.hasPrefix(".") ? String(domain.dropFirst()) : domain
+    let persistedDomains = ["uygaria.com", "ardahanli.com"]
 
-    return normalizedDomain == "uygaria.com" || normalizedDomain.hasSuffix(".uygaria.com")
+    return persistedDomains.contains { persistedDomain in
+      normalizedDomain == persistedDomain || normalizedDomain.hasSuffix(".\(persistedDomain)")
+    }
   }
 
   private func encode(cookie: HTTPCookie) -> [String: Any] {

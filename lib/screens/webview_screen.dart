@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
+import 'package:ardahan_kulubu/services/start_url_service.dart';
 import 'package:ardahan_kulubu/services/web_session_persistence.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -126,6 +127,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         NavigationDelegate(
           onProgress: (int progress) {},
           onPageStarted: (String url) {
+            _markLoggedInRoute(url);
             controller.runJavaScript('''
               (function() {
                 var meta = document.querySelector('meta[name="viewport"]');
@@ -193,6 +195,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ''');
           },
           onPageFinished: (String url) {
+            _markLoggedInRoute(url);
             controller.runJavaScript('''
               (function() {
                 var meta = document.querySelector('meta[name="viewport"]');
@@ -207,6 +210,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           },
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
+            _markLoggedInRoute(request.url);
             return NavigationDecision.navigate;
           },
         ),
@@ -234,12 +238,19 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   Future<void> _loadInitialRequest() async {
     await WebSessionPersistence.restore();
+    final String initialUrl = await StartUrlService.getInitialUrl(
+      fallbackUrl: widget.url,
+    );
 
     if (!mounted) {
       return;
     }
 
-    await _controller.loadRequest(Uri.parse(widget.url));
+    await _controller.loadRequest(Uri.parse(initialUrl));
+  }
+
+  void _markLoggedInRoute(String url) {
+    unawaited(StartUrlService.markLoggedInIfNeeded(url));
   }
 
   void _scheduleSessionSave() {
