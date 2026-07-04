@@ -20,6 +20,21 @@ import WebKit
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
   }
 
+  override func applicationWillResignActive(_ application: UIApplication) {
+    persistWebCookies()
+    super.applicationWillResignActive(application)
+  }
+
+  override func applicationDidEnterBackground(_ application: UIApplication) {
+    persistWebCookies()
+    super.applicationDidEnterBackground(application)
+  }
+
+  override func applicationWillTerminate(_ application: UIApplication) {
+    persistWebCookies()
+    super.applicationWillTerminate(application)
+  }
+
   func configureWebSessionChannel(for controller: FlutterViewController) {
     let channel = FlutterMethodChannel(
       name: "com.uygaria.memket/web_session",
@@ -43,6 +58,10 @@ import WebKit
     }
   }
 
+  func persistWebCookies() {
+    saveWebCookies { _ in }
+  }
+
   private func saveWebCookies(result: @escaping FlutterResult) {
     WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
       guard let self = self else {
@@ -55,6 +74,7 @@ import WebKit
         .map { self.encode(cookie: $0) }
 
       UserDefaults.standard.set(encodedCookies, forKey: self.webCookieStorageKey)
+      UserDefaults.standard.synchronize()
       DispatchQueue.main.async {
         result(nil)
       }

@@ -18,8 +18,10 @@ class WebViewScreen extends StatefulWidget {
 
 class _WebViewScreenState extends State<WebViewScreen> {
   static const Duration _cookieSaveDebounce = Duration(seconds: 1);
+  static const Duration _periodicCookieSaveInterval = Duration(seconds: 5);
   late final WebViewController _controller;
   late final _WebViewLifecycleObserver _lifecycleObserver;
+  Timer? _sessionSaveTimer;
   bool _saveScheduled = false;
 
   Future<List<String>> _androidFilePicker(FileSelectorParams params) async {
@@ -99,6 +101,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     super.initState();
     _lifecycleObserver = _WebViewLifecycleObserver(_saveSession);
     WidgetsBinding.instance.addObserver(_lifecycleObserver);
+    _sessionSaveTimer = Timer.periodic(
+      _periodicCookieSaveInterval,
+      (_) => unawaited(_saveSession()),
+    );
 
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
@@ -255,6 +261,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(_lifecycleObserver);
+    _sessionSaveTimer?.cancel();
     unawaited(WebSessionPersistence.save());
     super.dispose();
   }
@@ -292,6 +299,7 @@ class _WebViewLifecycleObserver extends WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       unawaited(onShouldSave());
