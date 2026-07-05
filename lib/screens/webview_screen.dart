@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
@@ -296,7 +297,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
       canPop: false,
       onPopInvokedWithResult: _handlePopInvoked,
       child: Scaffold(
-        body: SafeArea(child: WebViewWidget(controller: _controller)),
+        body: SafeArea(
+          bottom: Theme.of(context).platform != TargetPlatform.iOS,
+          child: WebViewWidget(controller: _controller),
+        ),
       ),
     );
   }
