@@ -10,6 +10,9 @@ class WebSessionPersistence {
 
   static Future<void> save() => _invoke('saveCookies');
 
+  static Future<void> requestMediaPermissions() =>
+      _invoke('requestMediaPermissions');
+
   static Future<void> _invoke(String method) async {
     if (defaultTargetPlatform != TargetPlatform.iOS) {
       return;
@@ -20,7 +23,7 @@ class WebSessionPersistence {
     } on MissingPluginException {
       // The native helper is only available on iOS release builds.
     } on PlatformException catch (error) {
-      debugPrint('Web session persistence failed: ${error.message}');
+      debugPrint('iOS native helper failed ($method): ${error.message}');
     }
   }
 }

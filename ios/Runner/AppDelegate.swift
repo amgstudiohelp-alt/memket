@@ -1,4 +1,6 @@
 import Flutter
+import AVFoundation
+import Photos
 import UIKit
 import WebKit
 
@@ -52,6 +54,8 @@ import WebKit
         self.restoreWebCookies(result: result)
       case "saveCookies":
         self.saveWebCookies(result: result)
+      case "requestMediaPermissions":
+        self.requestMediaPermissions(result: result)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -60,6 +64,64 @@ import WebKit
 
   func persistWebCookies() {
     saveWebCookies { _ in }
+  }
+
+  private func requestMediaPermissions(result: @escaping FlutterResult) {
+    requestPhotoLibraryPermission { [weak self] in
+      guard let self = self else {
+        result(nil)
+        return
+      }
+
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+        self.requestCameraPermission {
+          result(nil)
+        }
+      }
+    }
+  }
+
+  private func requestPhotoLibraryPermission(completion: @escaping () -> Void) {
+    if #available(iOS 14, *) {
+      switch PHPhotoLibrary.authorizationStatus(for: .readWrite) {
+      case .notDetermined:
+        PHPhotoLibrary.requestAuthorization(for: .readWrite) { _ in
+          DispatchQueue.main.async {
+            completion()
+          }
+        }
+      default:
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+          completion()
+        }
+      }
+    } else {
+      switch PHPhotoLibrary.authorizationStatus() {
+      case .notDetermined:
+        PHPhotoLibrary.requestAuthorization { _ in
+          DispatchQueue.main.async {
+            completion()
+          }
+        }
+      default:
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+          completion()
+        }
+      }
+    }
+  }
+
+  private func requestCameraPermission(completion: @escaping () -> Void) {
+    guard AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined else {
+      completion()
+      return
+    }
+
+    AVCaptureDevice.requestAccess(for: .video) { _ in
+      DispatchQueue.main.async {
+        completion()
+      }
+    }
   }
 
   private func saveWebCookies(result: @escaping FlutterResult) {

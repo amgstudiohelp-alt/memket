@@ -20,17 +20,18 @@ Future<void> main() async {
   });
 
   await WebSessionPersistence.restore();
-  await _requestNotificationPermission();
-
   runApp(const MyApp());
+  await _requestStartupPermissions();
+}
+
+Future<void> _requestStartupPermissions() async {
+  await _requestNotificationPermission();
+  await WebSessionPersistence.requestMediaPermissions();
 }
 
 Future<void> _requestNotificationPermission() async {
   try {
-    final bool canRequest = await OneSignal.Notifications.canRequest();
-    if (canRequest) {
-      await OneSignal.Notifications.requestPermission(true);
-    }
+    await OneSignal.Notifications.requestPermission(true);
   } catch (e) {
     debugPrint("Notification permission request failed: $e");
   }

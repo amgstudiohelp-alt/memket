@@ -6,6 +6,10 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>tr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Memket</string>
 	<key>CFBundleExecutable</key>
@@ -45,6 +49,8 @@
 	<string>Video içerik yükleme işlemleri için mikrofon erişimi kullanılabilir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil ve içerik yükleme işlemleri için fotoğraf erişimi kullanılabilir.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Profil ve içerik yükleme işlemleri için fotoğraf kaydetme erişimi kullanılabilir.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Konum erişimi, yalnızca konuma bağlı özellikler kullanıldığında gereklidir.</string>
 	<key>UIApplicationSceneManifest</key>
