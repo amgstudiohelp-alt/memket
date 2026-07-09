@@ -212,7 +212,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
-				A1B2C3D40300000000000001 /* Embed Foundation Extensions */,
 				9740EEB61CF901F6004384FC /* Run Script */,
 				97C146EA1CF9000F007C117D /* Sources */,
 				97C146EB1CF9000F007C117D /* Frameworks */,
@@ -223,7 +222,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				A1B2C3D40900000000000001 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			
@@ -249,9 +247,6 @@
 						CreatedOnToolsVersion = 7.3.1;
 						LastSwiftMigration = 1100;
 						SystemCapabilities = {
-							com.apple.ApplicationGroups.iOS = {
-								enabled = 1;
-							};
 							com.apple.BackgroundModes = {
 								enabled = 1;
 							};
