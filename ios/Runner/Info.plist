@@ -53,6 +53,8 @@
 	<string>Profil ve içerik yükleme işlemleri için fotoğraf kaydetme erişimi kullanılabilir.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Konum erişimi, yalnızca konuma bağlı özellikler kullanıldığında gereklidir.</string>
+	<key>OneSignal_app_groups_key</key>
+	<string>group.com.uygaria.hemsehrikulubu.onesignal</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

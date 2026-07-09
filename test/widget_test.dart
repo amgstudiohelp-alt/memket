@@ -10,7 +10,14 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: OfflineScreen()));
 
     expect(find.byIcon(Icons.wifi_off), findsOneWidget);
-    expect(find.text('İnternet bağlantısı yok'), findsOneWidget);
-    expect(find.text('Lütfen bağlantınızı kontrol ediniz.'), findsOneWidget);
+    expect(
+      find.text('\u0130nternet ba\u011flant\u0131s\u0131 yok'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('L\u00fctfen ba\u011flant\u0131n\u0131z\u0131 kontrol ediniz.'),
+      findsOneWidget,
+    );
+    expect(find.text('Tekrar dene'), findsOneWidget);
   });
 }

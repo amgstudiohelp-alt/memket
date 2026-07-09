@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_selector/file_selector.dart';
@@ -12,7 +11,8 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String url;
-  const WebViewScreen({super.key, required this.url});
+  final bool isConnected;
+  const WebViewScreen({super.key, required this.url, this.isConnected = true});
 
   @override
   State<WebViewScreen> createState() => _WebViewScreenState();
@@ -25,6 +25,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
   late final _WebViewLifecycleObserver _lifecycleObserver;
   Timer? _sessionSaveTimer;
   bool _saveScheduled = false;
+  bool _lastMainFrameLoadFailed = false;
 
   Future<List<String>> _androidFilePicker(FileSelectorParams params) async {
     if (params.mode == FileSelectorMode.save) {
@@ -42,9 +43,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       return files.map(_toWebViewFileUri).toList();
     }
 
-    final XFile? file = await openFile(
-      acceptedTypeGroups: acceptedTypeGroups,
-    );
+    final XFile? file = await openFile(acceptedTypeGroups: acceptedTypeGroups);
     return file == null ? <String>[] : <String>[_toWebViewFileUri(file)];
   }
 
@@ -61,9 +60,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
           .split(';')
           .first;
 
-      if (acceptType.isEmpty ||
-          acceptType == '*' ||
-          acceptType == '*/*') {
+      if (acceptType.isEmpty || acceptType == '*' || acceptType == '*/*') {
         return const <XTypeGroup>[];
       }
 
@@ -128,6 +125,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
         NavigationDelegate(
           onProgress: (int progress) {},
           onPageStarted: (String url) {
+            _lastMainFrameLoadFailed = false;
             _syncAuthenticationRoute(url);
             controller.runJavaScript('''
               (function() {
@@ -196,6 +194,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ''');
           },
           onPageFinished: (String url) {
+            _lastMainFrameLoadFailed = false;
             _syncAuthenticationRoute(url);
             controller.runJavaScript('''
               (function() {
@@ -209,7 +208,11 @@ class _WebViewScreenState extends State<WebViewScreen> {
             ''');
             _scheduleSessionSave();
           },
-          onWebResourceError: (WebResourceError error) {},
+          onWebResourceError: (WebResourceError error) {
+            if (error.isForMainFrame == true) {
+              _lastMainFrameLoadFailed = true;
+            }
+          },
           onNavigationRequest: (NavigationRequest request) {
             _syncAuthenticationRoute(request.url);
             return NavigationDecision.navigate;
@@ -235,6 +238,22 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     _controller = controller;
     unawaited(_loadInitialRequest());
+  }
+
+  @override
+  void didUpdateWidget(covariant WebViewScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!oldWidget.isConnected &&
+        widget.isConnected &&
+        _lastMainFrameLoadFailed) {
+      unawaited(_reloadFailedMainFrame());
+    }
+  }
+
+  Future<void> _reloadFailedMainFrame() async {
+    _lastMainFrameLoadFailed = false;
+    await _controller.reload();
   }
 
   Future<void> _loadInitialRequest() async {
