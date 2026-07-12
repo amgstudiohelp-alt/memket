@@ -21,9 +21,100 @@ class WebViewScreen extends StatefulWidget {
 class _WebViewScreenState extends State<WebViewScreen> {
   static const Duration _cookieSaveDebounce = Duration(seconds: 1);
   static const Duration _periodicCookieSaveInterval = Duration(seconds: 5);
+  static const Color _fallbackTopChromeColor = Color(0xFF0B6595);
+  static final RegExp _hexColorPattern = RegExp(
+    r'^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$',
+  );
+  static final RegExp _numberPattern = RegExp(r'[\d.]+');
+  static const String _topChromeColorSyncScript = r'''
+    (function() {
+      var channel = window.MemketChrome;
+      if (!channel || !channel.postMessage) {
+        return;
+      }
+
+      function hasVisibleBackground(color) {
+        if (!color || color === 'transparent') {
+          return false;
+        }
+
+        var rgba = color.match(/rgba?\(([^)]+)\)/i);
+        if (!rgba) {
+          return true;
+        }
+
+        var parts = rgba[1].split(',').map(function(part) {
+          return part.trim();
+        });
+
+        return parts.length < 4 || parseFloat(parts[3]) > 0;
+      }
+
+      function backgroundFrom(element) {
+        while (element && element !== document) {
+          var style = window.getComputedStyle(element);
+          if (style && hasVisibleBackground(style.backgroundColor)) {
+            return style.backgroundColor;
+          }
+          element = element.parentElement;
+        }
+
+        return null;
+      }
+
+      function firstMatchingElement(selectors) {
+        for (var i = 0; i < selectors.length; i++) {
+          var element = document.querySelector(selectors[i]);
+          if (element) {
+            return element;
+          }
+        }
+
+        return null;
+      }
+
+      function sendTopColor() {
+        var x = Math.max(1, Math.floor(window.innerWidth / 2));
+        var y = Math.max(1, Math.min(24, window.innerHeight - 1));
+        var probe = document.elementFromPoint(x, y);
+        var header = firstMatchingElement([
+          'header',
+          'nav',
+          '.navbar',
+          '.topbar',
+          '.top-bar',
+          '.appbar',
+          '.app-bar',
+          '#header',
+          '#navbar',
+          '#topbar'
+        ]);
+        var color =
+          backgroundFrom(probe) ||
+          backgroundFrom(header) ||
+          backgroundFrom(document.body) ||
+          backgroundFrom(document.documentElement);
+
+        if (color) {
+          channel.postMessage(color);
+        }
+      }
+
+      sendTopColor();
+      window.setTimeout(sendTopColor, 250);
+      window.setTimeout(sendTopColor, 1000);
+
+      if (!window.__memketChromeColorSyncInstalled) {
+        window.__memketChromeColorSyncInstalled = true;
+        window.addEventListener('resize', sendTopColor);
+        window.addEventListener('scroll', sendTopColor, { passive: true });
+      }
+    })();
+  ''';
   late final WebViewController _controller;
   late final _WebViewLifecycleObserver _lifecycleObserver;
   Timer? _sessionSaveTimer;
+  Color _topChromeColor = _fallbackTopChromeColor;
   bool _saveScheduled = false;
   bool _lastMainFrameLoadFailed = false;
 
@@ -121,6 +212,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
     controller
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0x00000000))
+      ..addJavaScriptChannel(
+        'MemketChrome',
+        onMessageReceived: _handleChromeColorMessage,
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {},
@@ -192,6 +287,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 document.documentElement.style.touchAction = 'pan-x pan-y';
               })();
             ''');
+            unawaited(_syncTopChromeColor(controller));
           },
           onPageFinished: (String url) {
             _lastMainFrameLoadFailed = false;
@@ -206,6 +302,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
                 document.documentElement.style.touchAction = 'pan-x pan-y';
               })();
             ''');
+            unawaited(_syncTopChromeColor(controller));
             _scheduleSessionSave();
           },
           onWebResourceError: (WebResourceError error) {
@@ -273,6 +370,76 @@ class _WebViewScreenState extends State<WebViewScreen> {
     unawaited(StartUrlService.syncAuthenticationStateForUrl(url));
   }
 
+  Future<void> _syncTopChromeColor(WebViewController controller) async {
+    try {
+      await controller.runJavaScript(_topChromeColorSyncScript);
+    } catch (e) {
+      debugPrint("Top chrome color sync failed: $e");
+    }
+  }
+
+  void _handleChromeColorMessage(JavaScriptMessage message) {
+    final Color? color = _parseCssColor(message.message);
+    if (!mounted || color == null || color == _topChromeColor) {
+      return;
+    }
+
+    setState(() {
+      _topChromeColor = color;
+    });
+  }
+
+  Color? _parseCssColor(String value) {
+    final String color = value.trim();
+    if (color.isEmpty || color.toLowerCase() == 'transparent') {
+      return null;
+    }
+
+    final RegExpMatch? hexMatch = _hexColorPattern.firstMatch(color);
+    if (hexMatch != null) {
+      return _parseHexColor(hexMatch.group(1)!);
+    }
+
+    final List<double> channels = _numberPattern
+        .allMatches(color)
+        .map((RegExpMatch match) => double.parse(match.group(0)!))
+        .toList();
+
+    if (channels.length < 3 || (channels.length >= 4 && channels[3] == 0)) {
+      return null;
+    }
+
+    return Color.fromARGB(
+      255,
+      channels[0].round().clamp(0, 255),
+      channels[1].round().clamp(0, 255),
+      channels[2].round().clamp(0, 255),
+    );
+  }
+
+  Color _parseHexColor(String hexColor) {
+    final String normalized = hexColor.length == 3
+        ? hexColor.split('').map((String char) => '$char$char').join()
+        : hexColor;
+
+    return Color(int.parse('FF$normalized', radix: 16));
+  }
+
+  SystemUiOverlayStyle get _systemUiOverlayStyle {
+    final Brightness backgroundBrightness =
+        ThemeData.estimateBrightnessForColor(_topChromeColor);
+    final SystemUiOverlayStyle baseStyle =
+        backgroundBrightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
+
+    return baseStyle.copyWith(
+      statusBarColor: _topChromeColor,
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    );
+  }
+
   void _scheduleSessionSave() {
     if (_saveScheduled) {
       return;
@@ -312,13 +479,20 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: _handlePopInvoked,
-      child: Scaffold(
-        body: SafeArea(
-          bottom: Theme.of(context).platform != TargetPlatform.iOS,
-          child: WebViewWidget(controller: _controller),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _systemUiOverlayStyle,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: _handlePopInvoked,
+        child: Scaffold(
+          backgroundColor: _topChromeColor,
+          body: ColoredBox(
+            color: _topChromeColor,
+            child: SafeArea(
+              bottom: Theme.of(context).platform != TargetPlatform.iOS,
+              child: WebViewWidget(controller: _controller),
+            ),
+          ),
         ),
       ),
     );
